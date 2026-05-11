@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>API Viewer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Gmarket+Sans:wght@300;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f5f0e8;
+      --surface: #fff;
+      --ink: #1a1208;
+      --muted: #9a8f7a;
+      --red: #e8401c;
+      --blue: #1a56db;
+      --border: #ddd5c0;
+      --tag: #f0e8d5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      font-family: 'Gmarket Sans', sans-serif;
+      min-height: 100vh;
+      padding: 0 0 60px;
+    }
+
+    /* Top bar */
+    .topbar {
+      background: var(--ink);
+      color: #fff;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .topbar-title { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+    .topbar-time { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #888; }
+
+    /* Controls */
+    .controls {
+      padding: 16px 20px 0;
+      display: flex;
+      gap: 10px;
+    }
+    .refresh-btn {
+      background: var(--ink); color: #fff; border: none; border-radius: 50px;
+      padding: 9px 20px; font-family: 'Gmarket Sans', sans-serif; font-size: 12px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; gap: 6px; transition: opacity 0.15s;
+    }
+    .refresh-btn:active { opacity: 0.7; }
+    .refresh-btn:disabled { opacity: 0.4; }
+    .auto-toggle {
+      background: var(--tag); color: var(--ink); border: 1.5px solid var(--border);
+      border-radius: 50px; padding: 8px 16px; font-family: 'Gmarket Sans', sans-serif;
+      font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+    }
+    .auto-toggle.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .status { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); padding: 6px 20px 0; min-height: 20px; }
+
+    /* Cards */
+    .cards { padding: 16px 20px 0; display: flex; flex-direction: column; gap: 14px; }
+
+    .api-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 18px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-header.red { background: var(--red); }
+    .card-header.blue { background: var(--blue); }
+    .card-label { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.75); }
+    .card-url { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: rgba(255,255,255,0.5); margin-top: 2px; word-break: break-all; }
+    .card-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 20px;
+      flex-shrink: 0;
+    }
+
+    /* Main value */
+    .card-value-wrap {
+      padding: 20px 18px 16px;
+      position: relative;
+    }
+    .value-field-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .value-text {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--ink);
+      word-break: keep-all;
+      line-height: 1.3;
+    }
+    .value-text.red { color: var(--red); }
+    .value-text.blue { color: var(--blue); }
+    .value-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* History (for API 1) */
+    .history-section {
+      border-top: 1px solid var(--border);
+      padding: 12px 18px;
+    }
+    .history-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid #f0ebe0;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-item.first .h-query { color: var(--red); font-weight: 700; }
+    .h-query { font-size: 13px; color: var(--ink); flex: 1; word-break: keep-all; }
+    .h-time { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--muted); flex-shrink: 0; }
+
+    /* Extra fields (for API 2) */
+    .extra-section {
+      border-top: 1px solid var(--border);
+      padding: 12px 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .extra-item {}
+    .extra-key { font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+    .extra-val { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--ink); font-weight: 600; }
+    .extra-val.null-v { color: var(--muted); font-style: italic; font-weight: 400; }
+
+    /* Loading skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, #ede8dd 25%, #e5dfcf 50%, #ede8dd 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 6px;
+      height: 28px;
+      width: 60%;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .err-text { color: #e8401c; font-size: 12px; font-family: 'IBM Plex Mono', monospace; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">API Viewer</div>
+  <div class="topbar-time" id="top-time">—</div>
+</div>
+
+<div class="controls">
+  <button class="refresh-btn" id="refresh-btn" onclick="fetchAll()">
+    <span id="btn-icon">↻</span> 새로고침
+  </button>
+  <button class="auto-toggle" id="auto-btn" onclick="toggleAuto()">자동 갱신 OFF</button>
+</div>
+<div class="status" id="status"></div>
+
+<div class="cards">
+
+  <!-- API 1: nevr.kr — query -->
+  <div class="api-card">
+    <div class="card-header red">
+      <div>
+        <div class="card-label">네이버 · query</div>
+        <div class="card-url">nevr.kr/f/025725cac431</div>
+      </div>
+      <div class="card-badge" id="a1-badge">—</div>
+    </div>
+    <div class="card-value-wrap">
+      <div class="value-field-label">query</div>
+      <div class="value-text red" id="a1-value">불러오는 중...</div>
+      <div class="value-meta" id="a1-meta"></div>
+    </div>
+    <div class="history-section">
+      <div class="history-label">최근 기록</div>
+      <div id="a1-history"></div>
+    </div>
+  </div>
+
+  <!-- API 2: 11z.co — value -->
+  <div class="api-card">
+    <div class="card-header blue">
+      <div>
+        <div class="card-label">구글 · value</div>
+        <div class="card-url">11z.co/_w/18424/selection</div>
+      </div>
+      <div class="card-badge" id="a2-badge">—</div>
+    </div>
+    <div class="card-value-wrap">
+      <div class="value-field-label">value</div>
+      <div class="value-text blue" id="a2-value">불러오는 중...</div>
+      <div class="value-meta" id="a2-meta"></div>
+    </div>
+    <div class="extra-section" id="a2-extra"></div>
+  </div>
+
+</div>
+
+<script>
+  const API1 = 'https://nevr.kr/f/025725cac431';
+  const API2 = 'https://11z.co/_w/18424/selection';
+  let autoTimer = null;
+  let loading = false;
+
+  function fmt(ts) {
+    const diff = Math.floor((Date.now() - ts) / 1000);
+    if (diff < 60) return diff + '초 전';
+    if (diff < 3600) return Math.floor(diff / 60) + '분 전';
+    if (diff < 86400) return Math.floor(diff / 3600) + '시간 전';
+    return new Date(ts).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function fetchAll() {
+    if (loading) return;
+    loading = true;
+    const btn = document.getElementById('refresh-btn');
+    const icon = document.getElementById('btn-icon');
+    btn.disabled = true;
+    icon.innerHTML = '<span class="spinner"></span>';
+
+    await Promise.all([fetchAPI1(), fetchAPI2()]);
+
+    document.getElementById('top-time').textContent = new Date().toLocaleTimeString('ko-KR');
+    document.getElementById('status').textContent = '✓ 마지막 업데이트: ' + new Date().toLocaleTimeString('ko-KR');
+    loading = false;
+    btn.disabled = false;
+    icon.textContent = '↻';
+  }
+
+  async function fetchAPI1() {
+    try {
+      const res = await fetch(API1 + '?_=' + Date.now());
+      const d = await res.json();
+      document.getElementById('a1-value').textContent = d.query || '(값 없음)';
+      document.getElementById('a1-meta').textContent = fmt(d.ts) + ' · 총 ' + (d.count || 0) + '개';
+      document.getElementById('a1-badge').textContent = 'No.' + (d.number || '—');
+
+      const hist = document.getElementById('a1-history');
+      hist.innerHTML = '';
+      (d.all || []).slice(0, 5).forEach((item, i) => {
+        const el = document.createElement('div');
+        el.className = 'history-item' + (i === 0 ? ' first' : '');
+        el.innerHTML = '<div class="h-query">' + esc(item.query) + '</div><div class="h-time">' + fmt(item.ts) + '</div>';
+        hist.appendChild(el);
+      });
+    } catch (e) {
+      document.getElementById('a1-value').innerHTML = '<span class="err-text">오류: ' + esc(e.message) + '</span>';
+    }
+  }
+
+  async function fetchAPI2() {
+    try {
+      const res = await fetch(API2 + '?_=' + Date.now());
+      const d = await res.json();
+      document.getElementById('a2-value').textContent = d.value ?? '(값 없음)';
+      document.getElementById('a2-badge').textContent = d.count != null ? d.count + '개' : '—';
+      document.getElementById('a2-meta').textContent = 'receiveCount: ' + (d.receiveCount ?? '—') + ' · source: ' + (d.source ?? '—');
+
+      // Extra fields
+      const extra = document.getElementById('a2-extra');
+      const fields = [
+        { key: 'count', val: d.count },
+        { key: 'receiveCount', val: d.receiveCount },
+        { key: 'source', val: d.source },
+        { key: 'thumperId', val: d.thumperId },
+        { key: 'ai', val: d.ai },
+      ];
+      extra.innerHTML = fields.map(f => {
+        const isNull = f.val === null || f.val === undefined;
+        return '<div class="extra-item"><div class="extra-key">' + esc(f.key) + '</div><div class="extra-val' + (isNull ? ' null-v' : '') + '">' + (isNull ? 'null' : esc(String(f.val))) + '</div></div>';
+      }).join('');
+    } catch (e) {
+      document.getElementById('a2-value').innerHTML = '<span class="err-text">오류: ' + esc(e.message) + '</span>';
+    }
+  }
+
+  function toggleAuto() {
+    const btn = document.getElementById('auto-btn');
+    if (autoTimer) {
+      clearInterval(autoTimer);
+      autoTimer = null;
+      btn.textContent = '자동 갱신 OFF';
+      btn.classList.remove('on');
+    } else {
+      autoTimer = setInterval(fetchAll, 5000);
+      btn.textContent = '자동 갱신 ON (5초)';
+      btn.classList.add('on');
+      fetchAll();
+    }
+  }
+
+  fetchAll();
+</script>
+</body>
+</html>
