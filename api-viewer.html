@@ -78,7 +78,22 @@
     }
     .card-header.red { background: var(--red); }
     .card-header.blue { background: var(--blue); }
-    .card-label { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.75); }
+    .card-name { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .card-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: rgba(255,255,255,0.6);
+    }
+    .meta-key {
+      font-weight: 700;
+      color: rgba(255,255,255,0.95);
+      letter-spacing: 0.08em;
+    }
+    .meta-sep { color: rgba(255,255,255,0.3); margin: 0 2px; }
     .card-url { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: rgba(255,255,255,0.5); margin-top: 2px; word-break: break-all; }
     .card-badge {
       font-family: 'IBM Plex Mono', monospace;
@@ -267,6 +282,23 @@
       font-size: 12px; font-weight: 700; cursor: pointer;
     }
 
+    .clickable-url {
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      text-decoration-color: rgba(255,255,255,0.3);
+      transition: color 0.15s;
+    }
+    .clickable-url:hover { color: rgba(255,255,255,0.9); }
+    .clickable-field {
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      text-decoration-color: rgba(255,255,255,0.3);
+      transition: opacity 0.15s;
+    }
+    .clickable-field:hover { opacity: 0.75; }
+
     .err-text { color: #e8401c; font-size: 12px; font-family: 'IBM Plex Mono', monospace; }
   </style>
 </head>
@@ -291,16 +323,17 @@
   <div class="api-card">
     <div class="card-header red">
       <div style="flex:1;min-width:0">
-        <div class="card-label">네이버 · query</div>
-        <div class="url-row">
-          <div class="card-url" id="a1-url-display">nevr.kr/f/025725cac431</div>
-          <button class="url-edit-btn" onclick="openModal('a1')">편집</button>
+        <div class="card-name">네이버</div>
+        <div class="card-meta-row">
+          <span class="meta-key">필드명</span> <span class="clickable-field" id="a1-field-display" onclick="openFieldModal('a1')">QUERY</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-key">API</span> <span class="clickable-url" id="a1-url-display" onclick="openUrlModal('a1')">nevr.kr/f/025725cac431</span>
         </div>
       </div>
       <div class="card-badge" id="a1-badge">—</div>
     </div>
     <div class="card-value-wrap">
-      <div class="value-field-label">query</div>
+      <div class="value-field-label" id="a1-field-label">query</div>
       <div class="value-text red" id="a1-value">불러오는 중...</div>
       <div class="value-meta" id="a1-meta"></div>
     </div>
@@ -317,16 +350,17 @@
   <div class="api-card">
     <div class="card-header blue">
       <div style="flex:1;min-width:0">
-        <div class="card-label">구글 · value</div>
-        <div class="url-row">
-          <div class="card-url" id="a2-url-display">11z.co/_w/18424/selection</div>
-          <button class="url-edit-btn" onclick="openModal('a2')">편집</button>
+        <div class="card-name">구글</div>
+        <div class="card-meta-row">
+          <span class="meta-key">필드명</span> <span class="clickable-field" id="a2-field-display" onclick="openFieldModal('a2')">VALUE</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-key">API</span> <span class="clickable-url" id="a2-url-display" onclick="openUrlModal('a2')">11z.co/_w/18424/selection</span>
         </div>
       </div>
       <div class="card-badge" id="a2-badge">—</div>
     </div>
     <div class="card-value-wrap">
-      <div class="value-field-label">value</div>
+      <div class="value-field-label" id="a2-field-label">value</div>
       <div class="value-text blue" id="a2-value">불러오는 중...</div>
       <div class="value-meta" id="a2-meta"></div>
     </div>
@@ -344,20 +378,33 @@
 <!-- URL 편집 모달 -->
 <div class="modal-overlay" id="url-modal">
   <div class="modal">
-    <div class="modal-title" id="modal-title">API 주소 편집</div>
-    <div class="modal-desc">새 API 주소와 가져올 필드명을 입력하세요.<br>저장하면 즉시 새 주소로 데이터를 불러와요.</div>
+    <div class="modal-title" id="url-modal-title">API 주소 편집</div>
+    <div class="modal-desc">새 API 주소를 입력하세요.<br>저장하면 즉시 새 주소로 데이터를 불러와요.</div>
     <div class="modal-field-wrap">
       <div class="modal-field-label">API 주소</div>
       <input class="modal-input" id="modal-url" type="text" placeholder="https://example.com/api" />
     </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="revertUrl()">↩ 되돌리기</button>
+      <button class="modal-cancel" onclick="closeModal('url-modal')">취소</button>
+      <button class="modal-save" onclick="saveUrl()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 필드명 편집 모달 -->
+<div class="modal-overlay" id="field-modal">
+  <div class="modal">
+    <div class="modal-title" id="field-modal-title">필드명 편집</div>
+    <div class="modal-desc">API 응답에서 표시할 필드명을 입력하세요.</div>
     <div class="modal-field-wrap">
-      <div class="modal-field-label">표시할 필드명</div>
+      <div class="modal-field-label">필드명</div>
       <input class="modal-input" id="modal-field" type="text" placeholder="query 또는 value 등" />
     </div>
     <div class="modal-btns">
-      <button class="modal-cancel" onclick="revertModal()">↩ 되돌리기</button>
-      <button class="modal-cancel" onclick="closeModal()">취소</button>
-      <button class="modal-save" onclick="saveModal()">저장</button>
+      <button class="modal-cancel" onclick="revertField()">↩ 되돌리기</button>
+      <button class="modal-cancel" onclick="closeModal('field-modal')">취소</button>
+      <button class="modal-save" onclick="saveField()">저장</button>
     </div>
   </div>
 </div>
@@ -429,62 +476,85 @@
     return s;
   }
 
-  function openModal(target) {
+  function openUrlModal(target) {
     modalTarget = target;
-    document.getElementById('modal-title').textContent = (target === 'a1' ? '네이버' : '구글') + ' API 주소 편집';
+    const name = target === 'a1' ? '네이버' : '구글';
+    document.getElementById('url-modal-title').textContent = name + ' · API 주소 편집';
     document.getElementById('modal-url').value = apis[target].url;
-    document.getElementById('modal-field').value = apis[target].field;
     document.getElementById('url-modal').classList.add('open');
   }
 
-  function closeModal() {
-    document.getElementById('url-modal').classList.remove('open');
+  function openFieldModal(target) {
+    modalTarget = target;
+    const name = target === 'a1' ? '네이버' : '구글';
+    document.getElementById('field-modal-title').textContent = name + ' · 필드명 편집';
+    document.getElementById('modal-field').value = apis[target].field;
+    document.getElementById('field-modal').classList.add('open');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
     modalTarget = null;
   }
 
-  function revertModal() {
-    if (!confirm('기본값으로 되돌릴까요?')) return;
-    apis[modalTarget].url = defaults[modalTarget].url;
-    apis[modalTarget].field = defaults[modalTarget].field;
-    const short = defaults[modalTarget].url.replace(/^https?:\/\//, '');
-    document.getElementById(modalTarget + '-url-display').textContent = short;
+  function saveUrl() {
+    const newUrl = document.getElementById('modal-url').value.trim();
+    if (!newUrl) { alert('주소를 입력해주세요'); return; }
+    apis[modalTarget].url = newUrl;
+    document.getElementById(modalTarget + '-url-display').textContent = newUrl.replace(/^https?:\/\//, '');
     updateHistoryVisibility();
-    closeModal();
+    closeModal('url-modal');
     fetchAll();
   }
 
-  function isDefault(target) {
-    return apis[target].url === defaults[target].url;
-  }
-
-  function updateHistoryVisibility() {
-    ['a1', 'a2'].forEach(target => {
-      const histSection = document.getElementById(target + '-history').closest('.history-section');
-      if (isDefault(target)) {
-        histSection.style.display = '';
-      } else {
-        histSection.style.display = 'none';
-      }
-    });
-  }
-
-  function saveModal() {
-    const newUrl = document.getElementById('modal-url').value.trim();
+  function saveField() {
     const newField = document.getElementById('modal-field').value.trim();
-    if (!newUrl || !newField) { alert('주소와 필드명을 모두 입력해주세요'); return; }
-    apis[modalTarget].url = newUrl;
+    if (!newField) { alert('필드명을 입력해주세요'); return; }
     apis[modalTarget].field = newField;
-    const short = newUrl.replace(/^https?:\/\//, '');
-    document.getElementById(modalTarget + '-url-display').textContent = short;
+    document.getElementById(modalTarget + '-field-display').textContent = newField.toUpperCase();
+    document.getElementById(modalTarget + '-field-label').textContent = newField;
     updateHistoryVisibility();
-    closeModal();
+    closeModal('field-modal');
+    fetchAll();
+  }
+
+  function revertUrl() {
+    if (!confirm('기본 주소로 되돌릴까요?')) return;
+    apis[modalTarget].url = defaults[modalTarget].url;
+    document.getElementById(modalTarget + '-url-display').textContent = defaults[modalTarget].url.replace(/^https?:\/\//, '');
+    updateHistoryVisibility();
+    closeModal('url-modal');
+    fetchAll();
+  }
+
+  function revertField() {
+    if (!confirm('기본 필드명으로 되돌릴까요?')) return;
+    apis[modalTarget].field = defaults[modalTarget].field;
+    document.getElementById(modalTarget + '-field-display').textContent = defaults[modalTarget].field.toUpperCase();
+    document.getElementById(modalTarget + '-field-label').textContent = defaults[modalTarget].field;
+    updateHistoryVisibility();
+    closeModal('field-modal');
     fetchAll();
   }
 
   // 모달 바깥 클릭 시 닫기
   document.getElementById('url-modal').addEventListener('click', function(e) {
-    if (e.target === this) closeModal();
+    if (e.target === this) closeModal('url-modal');
   });
+  document.getElementById('field-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal('field-modal');
+  });
+
+  function isDefault(target) {
+    return apis[target].url === defaults[target].url && apis[target].field === defaults[target].field;
+  }
+
+  function updateHistoryVisibility() {
+    ['a1', 'a2'].forEach(target => {
+      const histSection = document.getElementById(target + '-history').closest('.history-section');
+      histSection.style.display = isDefault(target) ? '' : 'none';
+    });
+  }
 
   async function fetchAll() {
     if (loading) return;
