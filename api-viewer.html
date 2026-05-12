@@ -130,7 +130,6 @@
       letter-spacing: 0.15em;
       text-transform: uppercase;
       color: var(--muted);
-      margin-bottom: 8px;
     }
     .history-item {
       display: flex;
@@ -172,6 +171,26 @@
     .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .clear-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-family: 'Gmarket Sans', sans-serif;
+      font-size: 10px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .clear-btn:hover { border-color: #e8401c; color: #e8401c; }
+    .clear-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
     .err-text { color: #e8401c; font-size: 12px; font-family: 'IBM Plex Mono', monospace; }
   </style>
 </head>
@@ -207,7 +226,10 @@
       <div class="value-meta" id="a1-meta"></div>
     </div>
     <div class="history-section">
-      <div class="history-label">최근 기록 (Sheets 저장)</div>
+      <div class="history-header">
+        <div class="history-label">최근 기록 (Sheets 저장)</div>
+        <button class="clear-btn" id="clear-naver" onclick="clearHistory('네이버', 'clear-naver', 'a1-history')">기록 삭제</button>
+      </div>
       <div id="a1-history"></div>
     </div>
   </div>
@@ -227,7 +249,10 @@
       <div class="value-meta" id="a2-meta"></div>
     </div>
     <div class="history-section">
-      <div class="history-label">최근 기록 (Sheets 저장)</div>
+      <div class="history-header">
+        <div class="history-label">최근 기록 (Sheets 저장)</div>
+        <button class="clear-btn" id="clear-google" onclick="clearHistory('구글', 'clear-google', 'a2-history')">기록 삭제</button>
+      </div>
       <div id="a2-history"></div>
     </div>
   </div>
@@ -252,6 +277,26 @@
 
   function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function clearHistory(sheetName, btnId, histId) {
+    if (!confirm(sheetName + ' 기록을 모두 삭제할까요?')) return;
+    const btn = document.getElementById(btnId);
+    btn.disabled = true;
+    btn.textContent = '삭제 중...';
+    try {
+      await fetch(SHEETS_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'clear', sheet: sheetName })
+      });
+      document.getElementById(histId).innerHTML =
+        '<div style="padding:8px;font-size:11px;color:var(--muted)">기록이 삭제되었습니다</div>';
+    } catch(e) {
+      alert('삭제 실패: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '기록 삭제';
+    }
   }
 
   async function fetchAll() {
