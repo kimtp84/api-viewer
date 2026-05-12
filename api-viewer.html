@@ -448,8 +448,24 @@
     apis[modalTarget].field = defaults[modalTarget].field;
     const short = defaults[modalTarget].url.replace(/^https?:\/\//, '');
     document.getElementById(modalTarget + '-url-display').textContent = short;
+    updateHistoryVisibility();
     closeModal();
     fetchAll();
+  }
+
+  function isDefault(target) {
+    return apis[target].url === defaults[target].url;
+  }
+
+  function updateHistoryVisibility() {
+    ['a1', 'a2'].forEach(target => {
+      const histSection = document.getElementById(target + '-history').closest('.history-section');
+      if (isDefault(target)) {
+        histSection.style.display = '';
+      } else {
+        histSection.style.display = 'none';
+      }
+    });
   }
 
   function saveModal() {
@@ -458,9 +474,9 @@
     if (!newUrl || !newField) { alert('주소와 필드명을 모두 입력해주세요'); return; }
     apis[modalTarget].url = newUrl;
     apis[modalTarget].field = newField;
-    // URL 표시 업데이트
     const short = newUrl.replace(/^https?:\/\//, '');
     document.getElementById(modalTarget + '-url-display').textContent = short;
+    updateHistoryVisibility();
     closeModal();
     fetchAll();
   }
@@ -561,6 +577,7 @@
   }
 
   // 자동 갱신 기본 ON
+  updateHistoryVisibility();
   toggleAuto();
 </script>
 </body>
