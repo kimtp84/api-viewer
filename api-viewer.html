@@ -299,6 +299,18 @@
     }
   }
 
+  function fixVal(val) {
+    if (!val) return val;
+    // 구글 시트가 날짜로 변환한 값 복원 방지 — 이미 문자열이면 그대로
+    const s = String(val);
+    // ISO 날짜 형태로 왔을 때 그냥 원본 문자열로 표시
+    if (s.match(/^\d{4}-\d{2}-\d{2}T/)) {
+      // 날짜로 변환된 경우 — 어쩔 수 없이 그대로 표시 (Sheets 재저장 필요)
+      return s;
+    }
+    return s;
+  }
+
   async function fetchAll() {
     if (loading) return;
     loading = true;
@@ -348,7 +360,7 @@
       // 네이버 기록
       const h1 = document.getElementById('a1-history');
       h1.innerHTML = '';
-      (data.naver || []).forEach((item, i) => {
+      (data.naver || []).slice(0, 5).forEach((item, i) => {
         const el = document.createElement('div');
         el.className = 'history-item' + (i === 0 ? ' first' : '');
         el.innerHTML =
@@ -360,7 +372,7 @@
       // 구글 기록
       const h2 = document.getElementById('a2-history');
       h2.innerHTML = '';
-      (data.google || []).forEach((item, i) => {
+      (data.google || []).slice(0, 5).forEach((item, i) => {
         const el = document.createElement('div');
         el.className = 'history-item' + (i === 0 ? ' first' : '');
         el.innerHTML =
