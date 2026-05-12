@@ -78,12 +78,27 @@
     }
     .card-header.red { background: var(--red); }
     .card-header.blue { background: var(--blue); }
-    .card-name { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .card-header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+    .card-name { font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .clickable-name {
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: rgba(255,255,255,0.3);
+      transition: opacity 0.15s;
+    }
+    .clickable-name:hover { opacity: 0.75; }
     .card-meta-row {
       display: flex;
       align-items: center;
       gap: 6px;
       flex-wrap: wrap;
+      justify-content: flex-end;
       font-family: 'IBM Plex Mono', monospace;
       font-size: 9px;
       color: rgba(255,255,255,0.6);
@@ -323,14 +338,16 @@
   <div class="api-card">
     <div class="card-header red">
       <div style="flex:1;min-width:0">
-        <div class="card-name">네이버</div>
-        <div class="card-meta-row">
-          <span class="meta-key">필드명</span> <span class="clickable-field" id="a1-field-display" onclick="openFieldModal('a1')">QUERY</span>
-          <span class="meta-sep">·</span>
-          <span class="meta-key">API</span> <span class="clickable-url" id="a1-url-display" onclick="openUrlModal('a1')">nevr.kr/f/025725cac431</span>
+        <div class="card-header-inner">
+          <div class="card-name clickable-name" id="a1-name-display" onclick="openNameModal('a1')">네이버</div>
+          <div class="card-meta-row">
+            <span class="meta-key">필드명</span> <span class="clickable-field" id="a1-field-display" onclick="openFieldModal('a1')">QUERY</span>
+            <span class="meta-sep">·</span>
+            <span class="meta-key">API</span> <span class="clickable-url" id="a1-url-display" onclick="openUrlModal('a1')">nevr.kr/f/025725cac431</span>
+          </div>
         </div>
       </div>
-      <div class="card-badge" id="a1-badge">—</div>
+      <div class="card-badge" id="a1-badge" style="display:none">—</div>
     </div>
     <div class="card-value-wrap">
       <div class="value-field-label" id="a1-field-label">query</div>
@@ -350,14 +367,16 @@
   <div class="api-card">
     <div class="card-header blue">
       <div style="flex:1;min-width:0">
-        <div class="card-name">구글</div>
-        <div class="card-meta-row">
-          <span class="meta-key">필드명</span> <span class="clickable-field" id="a2-field-display" onclick="openFieldModal('a2')">VALUE</span>
-          <span class="meta-sep">·</span>
-          <span class="meta-key">API</span> <span class="clickable-url" id="a2-url-display" onclick="openUrlModal('a2')">11z.co/_w/18424/selection</span>
+        <div class="card-header-inner">
+          <div class="card-name clickable-name" id="a2-name-display" onclick="openNameModal('a2')">구글</div>
+          <div class="card-meta-row">
+            <span class="meta-key">필드명</span> <span class="clickable-field" id="a2-field-display" onclick="openFieldModal('a2')">VALUE</span>
+            <span class="meta-sep">·</span>
+            <span class="meta-key">API</span> <span class="clickable-url" id="a2-url-display" onclick="openUrlModal('a2')">11z.co/_w/18424/selection</span>
+          </div>
         </div>
       </div>
-      <div class="card-badge" id="a2-badge">—</div>
+      <div class="card-badge" id="a2-badge" style="display:none">—</div>
     </div>
     <div class="card-value-wrap">
       <div class="value-field-label" id="a2-field-label">value</div>
@@ -373,6 +392,23 @@
     </div>
   </div>
 
+</div>
+
+<!-- 이름 편집 모달 -->
+<div class="modal-overlay" id="name-modal">
+  <div class="modal">
+    <div class="modal-title" id="name-modal-title">이름 편집</div>
+    <div class="modal-desc">카드에 표시할 이름을 입력하세요.</div>
+    <div class="modal-field-wrap">
+      <div class="modal-field-label">이름</div>
+      <input class="modal-input" id="modal-name" type="text" placeholder="네이버, 구글 등" />
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="revertName()">↩ 되돌리기</button>
+      <button class="modal-cancel" onclick="closeModal('name-modal')">취소</button>
+      <button class="modal-save" onclick="saveName()">저장</button>
+    </div>
+  </div>
 </div>
 
 <!-- URL 편집 모달 -->
@@ -416,13 +452,12 @@
 
   // 현재 사용 중인 URL과 필드명 (편집 가능)
   let apis = {
-    a1: { url: 'https://nevr.kr/f/025725cac431', field: 'query' },
-    a2: { url: 'https://11z.co/_w/18424/selection', field: 'value' }
+    a1: { url: 'https://nevr.kr/f/025725cac431', field: 'query', name: '네이버' },
+    a2: { url: 'https://11z.co/_w/18424/selection', field: 'value', name: '구글' }
   };
-  // 기본값 (되돌리기용)
   const defaults = {
-    a1: { url: 'https://nevr.kr/f/025725cac431', field: 'query' },
-    a2: { url: 'https://11z.co/_w/18424/selection', field: 'value' }
+    a1: { url: 'https://nevr.kr/f/025725cac431', field: 'query', name: '네이버' },
+    a2: { url: 'https://11z.co/_w/18424/selection', field: 'value', name: '구글' }
   };
   let modalTarget = null;
 
@@ -475,6 +510,32 @@
     }
     return s;
   }
+
+  function openNameModal(target) {
+    modalTarget = target;
+    document.getElementById('name-modal-title').textContent = '이름 편집';
+    document.getElementById('modal-name').value = apis[target].name;
+    document.getElementById('name-modal').classList.add('open');
+  }
+
+  function saveName() {
+    const newName = document.getElementById('modal-name').value.trim();
+    if (!newName) { alert('이름을 입력해주세요'); return; }
+    apis[modalTarget].name = newName;
+    document.getElementById(modalTarget + '-name-display').textContent = newName;
+    closeModal('name-modal');
+  }
+
+  function revertName() {
+    if (!confirm('기본 이름으로 되돌릴까요?')) return;
+    apis[modalTarget].name = defaults[modalTarget].name;
+    document.getElementById(modalTarget + '-name-display').textContent = defaults[modalTarget].name;
+    closeModal('name-modal');
+  }
+
+  document.getElementById('name-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal('name-modal');
+  });
 
   function openUrlModal(target) {
     modalTarget = target;
