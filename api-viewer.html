@@ -72,7 +72,7 @@
     }
     .secret-grid.on { display: grid; }
     .grid-cell {
-      border: 1px solid #111;
+      border: none;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -81,7 +81,7 @@
       overflow: hidden;
       user-select: none;
     }
-    .grid-cell:active { background: #111; }
+    .grid-cell:active { background: #000; }
     .grid-cell img {
       width: 100%; height: 100%;
       object-fit: cover;
@@ -106,13 +106,6 @@
       justify-content: center;
     }
     .img-fullscreen.on { display: flex; }
-    .img-fullscreen img {
-      max-width: 100%; max-height: 100%;
-      object-fit: contain;
-      opacity: 0;
-      transition: opacity 0.8s ease;
-    }
-    .img-fullscreen img.fade-in { opacity: 1; }
     .img-fullscreen-close {
       position: absolute;
       top: 20px; right: 20px;
@@ -122,10 +115,8 @@
       color: #fff; font-size: 18px;
       cursor: pointer; display: flex;
       align-items: center; justify-content: center;
-      opacity: 0;
-      transition: opacity 0.8s ease 0.3s;
+      z-index: 10;
     }
-    .img-fullscreen.on .img-fullscreen-close { opacity: 1; }
 
     /* 퀴즈 모달 */
     .quiz-overlay {
@@ -518,7 +509,7 @@
 <div class="topbar">
   <div class="topbar-left">
     <div class="screen-off-btn" id="screen-off-btn" onclick="toggleScreenOff()"></div>
-    <div class="topbar-title">API Viewer</div>
+
   </div>
   <div class="topbar-time" id="top-time">—</div>
 </div>
@@ -596,10 +587,12 @@
 <!-- 화면 꺼짐 격자 -->
 <div class="secret-grid" id="secret-grid"></div>
 
-<!-- 이미지 전체화면 -->
+<!-- 스크래치 화면 -->
 <div class="img-fullscreen" id="img-fullscreen">
   <button class="img-fullscreen-close" onclick="closeFullscreen()">✕</button>
-  <img id="fullscreen-img" src="" />
+  <img id="fullscreen-img" src="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;" />
+  <canvas id="scratch-canvas" style="position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;"></canvas>
+  <div id="scratch-hint" style="position:absolute;bottom:60px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.85);font-size:15px;font-weight:700;pointer-events:none;text-shadow:0 1px 6px #000;">카드를 생각하면서 화면을 문질러보세요.</div>
 </div>
 
 <!-- 퀴즈 1단계: 색상 질문 -->
@@ -795,25 +788,112 @@
 
 
 
+  // ── 스크래치 카드 ──
+  let scratchCtx = null;
+  let scratchDrawing = false;
+  let scratchRevealed = false;
+
+  function initScratch() {
+    const canvas = document.getElementById('scratch-canvas');
+    const wrap = document.getElementById('img-fullscreen');
+    canvas.width = wrap.offsetWidth;
+    canvas.height = wrap.offsetHeight;
+    const ctx = canvas.getContext('2d');
+    // 검은 마스크로 채우기
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    scratchCtx = ctx;
+    scratchRevealed = false;
+    canvas.style.display = 'block';
+    document.getElementById('scratch-hint').style.display = 'block';
+
+    // 터치/마우스 이벤트
+    canvas.addEventListener('touchstart', onScratchStart, {passive: false});
+    canvas.addEventListener('touchmove', onScratchMove, {passive: false});
+    canvas.addEventListener('touchend', onScratchEnd);
+    canvas.addEventListener('mousedown', onScratchStart);
+    canvas.addEventListener('mousemove', onScratchMove);
+    canvas.addEventListener('mouseup', onScratchEnd);
+  }
+
+  function getPos(e, canvas) {
+    const r = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / r.width;
+    const scaleY = canvas.height / r.height;
+    if (e.touches) {
+      return {
+        x: (e.touches[0].clientX - r.left) * scaleX,
+        y: (e.touches[0].clientY - r.top) * scaleY
+      };
+    }
+    return {x: (e.clientX - r.left) * scaleX, y: (e.clientY - r.top) * scaleY};
+  }
+
+  function onScratchStart(e) {
+    e.preventDefault();
+    scratchDrawing = true;
+    scratchAt(e);
+  }
+  function onScratchMove(e) {
+    e.preventDefault();
+    if (!scratchDrawing) return;
+    scratchAt(e);
+  }
+  function onScratchEnd(e) { scratchDrawing = false; checkReveal(); }
+
+  function scratchAt(e) {
+    if (!scratchCtx) return;
+    const canvas = document.getElementById('scratch-canvas');
+    const pos = getPos(e, canvas);
+    scratchCtx.globalCompositeOperation = 'destination-out';
+    scratchCtx.beginPath();
+    scratchCtx.arc(pos.x, pos.y, 36, 0, Math.PI * 2);
+    scratchCtx.fill();
+  }
+
+  function checkReveal() {
+    if (scratchRevealed) return;
+    const canvas = document.getElementById('scratch-canvas');
+    const ctx = scratchCtx;
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    let cleared = 0;
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] === 0) cleared++;
+    }
+    const ratio = cleared / (canvas.width * canvas.height);
+    if (ratio > 0.5) {
+      scratchRevealed = true;
+      // 완전히 지우기 (부드럽게)
+      canvas.style.transition = 'opacity 0.4s';
+      canvas.style.opacity = '0';
+      document.getElementById('scratch-hint').style.display = 'none';
+      setTimeout(() => { canvas.style.display = 'none'; }, 400);
+    }
+  }
+
   function showFullscreen(src) {
     const img = document.getElementById('fullscreen-img');
-    img.classList.remove('fade-in');
     img.src = src;
     document.getElementById('img-fullscreen').classList.add('on');
-    // 그라데이션 fade-in
-    requestAnimationFrame(() => requestAnimationFrame(() => img.classList.add('fade-in')));
+    // 캔버스 초기화 (다음 프레임에 — 레이아웃 확정 후)
+    setTimeout(() => initScratch(), 50);
   }
 
   function closeFullscreen() {
-    const img = document.getElementById('fullscreen-img');
-    img.classList.remove('fade-in');
+    const canvas = document.getElementById('scratch-canvas');
+    // 이벤트 제거
+    canvas.removeEventListener('touchstart', onScratchStart);
+    canvas.removeEventListener('touchmove', onScratchMove);
+    canvas.removeEventListener('touchend', onScratchEnd);
+    canvas.removeEventListener('mousedown', onScratchStart);
+    canvas.removeEventListener('mousemove', onScratchMove);
+    canvas.removeEventListener('mouseup', onScratchEnd);
+    canvas.style.opacity = '1';
+    canvas.style.transition = '';
+    scratchCtx = null;
     document.getElementById('img-fullscreen').classList.remove('on');
     currentCell = null;
   }
-
-  document.getElementById('img-fullscreen').addEventListener('click', function(e) {
-    if (e.target === this) closeFullscreen();
-  });
 
 
   // ── API / 모달 기능 ──
