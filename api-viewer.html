@@ -21,7 +21,7 @@
       --border: #ddd5c0;
       --tag: #f0e8d5;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent !important; }
     html, body {
       /* 하단 내비게이션 바 영역까지 배경색 채우기 */
       background: var(--bg);
@@ -83,6 +83,8 @@
       z-index: 200;
       grid-template-columns: repeat(3, 1fr);
       grid-template-rows: repeat(4, 1fr);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
     .secret-grid.on { display: grid; }
     .grid-cell {
@@ -94,6 +96,10 @@
       position: relative;
       overflow: hidden;
       user-select: none;
+      background: #000;
+      /* 안드로이드 WebView 터치 하이라이트 제거 */
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
     }
     .grid-cell:active { background: #000; }
     .grid-cell img {
@@ -829,13 +835,6 @@
     canvas.addEventListener('mousedown', onScratchStart);
     canvas.addEventListener('mousemove', onScratchMove);
     canvas.addEventListener('mouseup', onScratchEnd);
-
-    // 길게 누르기 이벤트 (이미지 영역 전체)
-    wrap.addEventListener('touchstart', onLongPressStart, {passive: true});
-    wrap.addEventListener('touchend', onLongPressEnd);
-    wrap.addEventListener('touchcancel', onLongPressEnd);
-    wrap.addEventListener('mousedown', onLongPressStart);
-    wrap.addEventListener('mouseup', onLongPressEnd);
   }
 
   function getPos(e, canvas) {
@@ -885,10 +884,18 @@
     const ratio = cleared / (canvas.width * canvas.height);
     if (ratio > 0.8) {
       scratchRevealed = true;
-      // 캔버스 완전히 제거 (이미지만 보이게)
       canvas.style.transition = 'opacity 0.4s';
       canvas.style.opacity = '0';
-      setTimeout(() => { canvas.style.display = 'none'; }, 400);
+      setTimeout(() => {
+        canvas.style.display = 'none';
+        // 캔버스 사라진 후 이미지 div에 길게누르기 리스너 등록
+        const img = document.getElementById('fullscreen-img');
+        img.addEventListener('touchstart', onLongPressStart, {passive: true});
+        img.addEventListener('touchend', onLongPressEnd);
+        img.addEventListener('touchcancel', onLongPressEnd);
+        img.addEventListener('mousedown', onLongPressStart);
+        img.addEventListener('mouseup', onLongPressEnd);
+      }, 400);
     }
   }
 
@@ -928,6 +935,7 @@
   function closeFullscreen() {
     const canvas = document.getElementById('scratch-canvas');
     const wrap = document.getElementById('img-fullscreen');
+    const img = document.getElementById('fullscreen-img');
     // 스크래치 이벤트 제거
     canvas.removeEventListener('touchstart', onScratchStart);
     canvas.removeEventListener('touchmove', onScratchMove);
@@ -936,14 +944,15 @@
     canvas.removeEventListener('mousemove', onScratchMove);
     canvas.removeEventListener('mouseup', onScratchEnd);
     // 길게누르기 이벤트 제거
-    wrap.removeEventListener('touchstart', onLongPressStart);
-    wrap.removeEventListener('touchend', onLongPressEnd);
-    wrap.removeEventListener('touchcancel', onLongPressEnd);
-    wrap.removeEventListener('mousedown', onLongPressStart);
-    wrap.removeEventListener('mouseup', onLongPressEnd);
+    img.removeEventListener('touchstart', onLongPressStart);
+    img.removeEventListener('touchend', onLongPressEnd);
+    img.removeEventListener('touchcancel', onLongPressEnd);
+    img.removeEventListener('mousedown', onLongPressStart);
+    img.removeEventListener('mouseup', onLongPressEnd);
     if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
     canvas.style.opacity = '1';
     canvas.style.transition = '';
+    canvas.style.display = 'block';
     scratchCtx = null;
     scratchRevealed = false;
     wrap.classList.remove('on');
