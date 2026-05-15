@@ -831,7 +831,6 @@
     canvas.addEventListener('mouseup', onScratchEnd);
 
     // 길게 누르기 이벤트 (이미지 영역 전체)
-    const wrap = document.getElementById('img-fullscreen');
     wrap.addEventListener('touchstart', onLongPressStart, {passive: true});
     wrap.addEventListener('touchend', onLongPressEnd);
     wrap.addEventListener('touchcancel', onLongPressEnd);
