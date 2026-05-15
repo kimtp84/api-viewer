@@ -606,7 +606,7 @@
   <button class="img-fullscreen-close" onclick="closeFullscreen()">✕</button>
   <img id="fullscreen-img" src="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;" />
   <canvas id="scratch-canvas" style="position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;"></canvas>
-  <div id="scratch-hint" style="position:absolute;bottom:60px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.85);font-size:15px;font-weight:700;pointer-events:none;text-shadow:0 1px 6px #000;">카드를 생각하면서 화면을 문질러보세요.</div>
+
 </div>
 
 <!-- 퀴즈 1단계: 색상 질문 -->
@@ -819,7 +819,7 @@
     scratchCtx = ctx;
     scratchRevealed = false;
     canvas.style.display = 'block';
-    document.getElementById('scratch-hint').style.display = 'block';
+
 
     // 터치/마우스 이벤트
     canvas.addEventListener('touchstart', onScratchStart, {passive: false});
@@ -880,7 +880,7 @@
       // 완전히 지우기 (부드럽게)
       canvas.style.transition = 'opacity 0.4s';
       canvas.style.opacity = '0';
-      document.getElementById('scratch-hint').style.display = 'none';
+
       setTimeout(() => { canvas.style.display = 'none'; }, 400);
     }
   }
