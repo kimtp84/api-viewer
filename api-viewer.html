@@ -603,7 +603,7 @@
 
 <!-- 스크래치 화면 -->
 <div class="img-fullscreen" id="img-fullscreen">
-  <button class="img-fullscreen-close" onclick="closeFullscreen()">✕</button>
+  <button class="img-fullscreen-close" onclick="closeFullscreen()" style="display:none;">✕</button>
   <img id="fullscreen-img" src="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;" />
   <canvas id="scratch-canvas" style="position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;"></canvas>
 
@@ -805,7 +805,8 @@
   // ── 스크래치 카드 ──
   let scratchCtx = null;
   let scratchDrawing = false;
-  let scratchRevealed = false;
+  let scratchRevealed = false;  // 80% 이상 긁혔는지 여부
+  let longPressTimer = null;
 
   function initScratch() {
     const canvas = document.getElementById('scratch-canvas');
@@ -828,6 +829,14 @@
     canvas.addEventListener('mousedown', onScratchStart);
     canvas.addEventListener('mousemove', onScratchMove);
     canvas.addEventListener('mouseup', onScratchEnd);
+
+    // 길게 누르기 이벤트 (이미지 영역 전체)
+    const wrap = document.getElementById('img-fullscreen');
+    wrap.addEventListener('touchstart', onLongPressStart, {passive: true});
+    wrap.addEventListener('touchend', onLongPressEnd);
+    wrap.addEventListener('touchcancel', onLongPressEnd);
+    wrap.addEventListener('mousedown', onLongPressStart);
+    wrap.addEventListener('mouseup', onLongPressEnd);
   }
 
   function getPos(e, canvas) {
@@ -875,13 +884,26 @@
       if (data[i] === 0) cleared++;
     }
     const ratio = cleared / (canvas.width * canvas.height);
-    if (ratio > 0.5) {
+    if (ratio > 0.8) {
       scratchRevealed = true;
-      // 완전히 지우기 (부드럽게)
+      // 캔버스 완전히 제거 (이미지만 보이게)
       canvas.style.transition = 'opacity 0.4s';
       canvas.style.opacity = '0';
-
       setTimeout(() => { canvas.style.display = 'none'; }, 400);
+    }
+  }
+
+  // 길게 누르기로 닫기 (scratchRevealed 상태일 때만)
+  function onLongPressStart(e) {
+    if (!scratchRevealed) return;
+    longPressTimer = setTimeout(() => {
+      closeFullscreen();
+    }, 600);
+  }
+  function onLongPressEnd(e) {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
     }
   }
 
@@ -906,17 +928,26 @@
 
   function closeFullscreen() {
     const canvas = document.getElementById('scratch-canvas');
-    // 이벤트 제거
+    const wrap = document.getElementById('img-fullscreen');
+    // 스크래치 이벤트 제거
     canvas.removeEventListener('touchstart', onScratchStart);
     canvas.removeEventListener('touchmove', onScratchMove);
     canvas.removeEventListener('touchend', onScratchEnd);
     canvas.removeEventListener('mousedown', onScratchStart);
     canvas.removeEventListener('mousemove', onScratchMove);
     canvas.removeEventListener('mouseup', onScratchEnd);
+    // 길게누르기 이벤트 제거
+    wrap.removeEventListener('touchstart', onLongPressStart);
+    wrap.removeEventListener('touchend', onLongPressEnd);
+    wrap.removeEventListener('touchcancel', onLongPressEnd);
+    wrap.removeEventListener('mousedown', onLongPressStart);
+    wrap.removeEventListener('mouseup', onLongPressEnd);
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
     canvas.style.opacity = '1';
     canvas.style.transition = '';
     scratchCtx = null;
-    document.getElementById('img-fullscreen').classList.remove('on');
+    scratchRevealed = false;
+    wrap.classList.remove('on');
     currentCell = null;
   }
 
