@@ -2,7 +2,12 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <!-- 안드로이드 상태바/내비게이션바 색상 통일 -->
+  <meta name="theme-color" content="#1a1208" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>API Viewer</title>
   <link href="https://fonts.googleapis.com/css2?family=Gmarket+Sans:wght@300;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <style>
@@ -17,11 +22,18 @@
       --tag: #f0e8d5;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      /* 하단 내비게이션 바 영역까지 배경색 채우기 */
+      background: var(--bg);
+      overscroll-behavior: none;
+    }
     body {
       background: var(--bg);
       font-family: 'Gmarket Sans', sans-serif;
       min-height: 100vh;
-      padding: 0 0 60px;
+      min-height: 100dvh;
+      /* 하단 safe area (홈 인디케이터) 대응 */
+      padding: 0 0 calc(60px + env(safe-area-inset-bottom));
     }
 
     /* Top bar */
@@ -29,6 +41,8 @@
       background: var(--ink);
       color: #fff;
       padding: 14px 20px;
+      /* 상단 상태바 영역 대응 */
+      padding-top: calc(14px + env(safe-area-inset-top));
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -590,7 +604,7 @@
 <!-- 스크래치 화면 -->
 <div class="img-fullscreen" id="img-fullscreen">
   <button class="img-fullscreen-close" onclick="closeFullscreen()">✕</button>
-  <img id="fullscreen-img" src="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;" />
+  <img id="fullscreen-img" src="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;" />
   <canvas id="scratch-canvas" style="position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;"></canvas>
   <div id="scratch-hint" style="position:absolute;bottom:60px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.85);font-size:15px;font-weight:700;pointer-events:none;text-shadow:0 1px 6px #000;">카드를 생각하면서 화면을 문질러보세요.</div>
 </div>
@@ -873,10 +887,21 @@
 
   function showFullscreen(src) {
     const img = document.getElementById('fullscreen-img');
+    // 이미지를 완전히 투명하게 설정 (스크래치 전 노출 방지)
+    img.style.opacity = '0';
+    img.onload = function() {
+      // 이미지 로드 완료 → fullscreen 열고 캔버스(검은 마스크) 즉시 초기화
+      document.getElementById('img-fullscreen').classList.add('on');
+      // requestAnimationFrame으로 레이아웃 확정 후 캔버스 그리기
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          initScratch();
+          // 캔버스가 이미지를 완전히 덮은 뒤 이미지 보이게
+          img.style.opacity = '1';
+        });
+      });
+    };
     img.src = src;
-    document.getElementById('img-fullscreen').classList.add('on');
-    // 캔버스 초기화 (다음 프레임에 — 레이아웃 확정 후)
-    setTimeout(() => initScratch(), 50);
   }
 
   function closeFullscreen() {
